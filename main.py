@@ -10,7 +10,7 @@ project = "villagepump"
 dist_stats = f"./{project}/stats/pages.json"
 dist_data = "./data.json"
 
-URL_TEMPLATE = "https://scrapbox.io/api/pages/{project}"
+URL_TEMPLATE = f"https://scrapbox.io/api/pages/{project}"
 LIMIT_PARAM = 1000
 
 
@@ -21,12 +21,12 @@ async def fetch(url):
 
 
 async def main():
-    pages_response = await fetch(f"{URL_TEMPLATE}/{project}/?limit=1")
+    pages_response = await fetch(f"{URL_TEMPLATE}/?limit=1")
     page_num = pages_response["count"]
     max_index = (page_num // LIMIT_PARAM) + 1
 
     pages = []
-    tasks = [fetch(f"{URL_TEMPLATE}/{project}/?limit={LIMIT_PARAM}&skip={index * LIMIT_PARAM}")
+    tasks = [fetch(f"{URL_TEMPLATE}/?limit={LIMIT_PARAM}&skip={index * LIMIT_PARAM}")
              for index in range(max_index)]
     for task in asyncio.as_completed(tasks):
         result = await task
@@ -49,7 +49,7 @@ async def main():
             f"[scrapbox-external-backup] Start fetching {i} - {i + skip} pages.")
 
         urls = [
-            f"{URL_TEMPLATE}/{project}/{quote(title.title, safe='')}" for title in titles[i:i+skip]]
+            f"{URL_TEMPLATE}/{quote(title.title, safe='')}" for title in titles[i:i+skip]]
         tasks = [fetch(url) for url in urls]
         for j, task in enumerate(asyncio.as_completed(tasks), start=i):
             print(
