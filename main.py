@@ -2,20 +2,16 @@ import asyncio
 import json
 from urllib.parse import quote
 import aiohttp
-import os
+from collections import namedtuple
 
-
-class TitlePage:
-    def __init__(self, id, title, created, updated):
-        self.id = id
-        self.title = title
-        self.created = created
-        self.updated = updated
-
+TitlePage = namedtuple("TitlePage", ["id", "title", "created", "updated"])
 
 project = "villagepump"
 dist_stats = f"./{project}/stats/pages.json"
 dist_data = "./data.json"
+
+URL_TEMPLATE = "https://scrapbox.io/api/pages/{project}"
+LIMIT_PARAM = 1000
 
 
 async def fetch(url):
@@ -25,14 +21,13 @@ async def fetch(url):
 
 
 async def main():
-    pages_response = await fetch(f"https://scrapbox.io/api/pages/{project}/?limit=1")
+    pages_response = await fetch(f"{URL_TEMPLATE}/{project}/?limit=1")
     page_num = pages_response["count"]
-    limit_param = 1000
-    max_index = (page_num // 1000) + 1
+    max_index = (page_num // LIMIT_PARAM) + 1
 
     pages = []
-    tasks = [fetch(
-        f"https://scrapbox.io/api/pages/{project}/?limit={limit_param}&skip={index * 1000}") for index in range(max_index)]
+    tasks = [fetch(f"{URL_TEMPLATE}/{project}/?limit={LIMIT_PARAM}&skip={index * LIMIT_PARAM}")
+             for index in range(max_index)]
     for task in asyncio.as_completed(tasks):
         result = await task
         pages.extend(result["pages"])
@@ -44,7 +39,7 @@ async def main():
     write_json(dist_stats, {
         "projectName": project,
         "count": page_num,
-        "pages": [title.__dict__ for title in titles]
+        "pages": [title._asdict() for title in titles]
     })
 
     skip = 100
@@ -54,8 +49,7 @@ async def main():
             f"[scrapbox-external-backup] Start fetching {i} - {i + skip} pages.")
 
         urls = [
-            f"https://scrapbox.io/api/pages/{project}/{quote(title.title, safe='')}"
-            for title in titles[i:i+skip]]
+            f"{URL_TEMPLATE}/{project}/{quote(title.title, safe='')}" for title in titles[i:i+skip]]
         tasks = [fetch(url) for url in urls]
         for j, task in enumerate(asyncio.as_completed(tasks), start=i):
             print(
