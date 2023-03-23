@@ -52,8 +52,11 @@ async def main():
     for i in range(0, len(titles), skip):
         print(
             f"[scrapbox-external-backup] Start fetching {i} - {i + skip} pages.")
-        tasks = [fetch(
-            f"https://scrapbox.io/api/pages/{project}/{quote(title.title)}") for title in titles[i:i+skip]]
+
+        urls = [
+            f"https://scrapbox.io/api/pages/{project}/{quote(title.title, safe='')}"
+            for title in titles[i:i+skip]]
+        tasks = [fetch(url) for url in urls]
         for j, task in enumerate(asyncio.as_completed(tasks), start=i):
             print(
                 f"[page {j}@scrapbox-external-backup] start fetching /{project}/{titles[j].title}")
